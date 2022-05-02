@@ -33,11 +33,34 @@ func main() {
 		if update.Message == nil {
 			continue
 		}
-		if strings.HasPrefix(strings.ToLower(update.Message.Text), TRANLSATE_KEYWORD) {
-			msg := handleTranslateRequest(&update)
-			bot.Send(msg)
+
+		fmt.Println(update.Message.Text)
+
+		if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
+			handleGroupMessage(bot, &update)
+		}
+
+		if update.Message.Chat.IsPrivate() {
+			handlePrivateMessage(bot, &update)
 		}
 	}
+}
+
+func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	if strings.HasPrefix(strings.ToLower(update.Message.Text), TRANLSATE_KEYWORD) {
+		requestText := strings.TrimPrefix(strings.ToLower(update.Message.Text), TRANLSATE_KEYWORD)
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		msg.ReplyToMessageID = update.Message.MessageID
+		msg.Text = translate(requestText)
+		bot.Send(msg)
+	}
+}
+
+func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	msg.ReplyToMessageID = update.Message.MessageID
+	msg.Text = translate(strings.ToLower(update.Message.Text))
+	bot.Send(msg)
 }
 
 type Suggestion struct {
@@ -45,12 +68,10 @@ type Suggestion struct {
 	Label string `json:"label"`
 }
 
-func handleTranslateRequest(update *tgbotapi.Update) tgbotapi.MessageConfig {
-	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
-	msg.ReplyToMessageID = update.Message.MessageID
-	messageText := strings.ToLower(update.Message.Text)
-	searchTerm := strings.TrimPrefix(messageText, TRANLSATE_KEYWORD)
-	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", searchTerm)
+func translate(searchTerm string) string {
+	fmt.Println(searchTerm)
+	cleanSearchTerm := strings.ReplaceAll(strings.ReplaceAll(searchTerm, "і", "и"), "ў", "щ")
+	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", cleanSearchTerm)
 
 	resp, err := http.Get(requestUrl)
 	if err != nil {
@@ -66,9 +87,7 @@ func handleTranslateRequest(update *tgbotapi.Update) tgbotapi.MessageConfig {
 	json.Unmarshal(body, &suggestions)
 
 	if len(suggestions) == 0 {
-		msg.Text = "Адчапіся, дурны"
-
-		return msg
+		return "Адчапіся, дурны"
 	}
 
 	requestUrl = fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestions[0].Id)
@@ -97,7 +116,5 @@ func handleTranslateRequest(update *tgbotapi.Update) tgbotapi.MessageConfig {
 
 	log.Println(translation)
 
-	msg.Text = translation
-
-	return msg
+	return translation
 }
