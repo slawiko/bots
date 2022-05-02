@@ -66,9 +66,17 @@ type Suggestion struct {
 	Label string `json:"label"`
 }
 
+func cleanTerm(searchTerm string) string {
+	cleanSearchTerm := strings.ReplaceAll(searchTerm, "ў", "щ")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
+
+	return cleanSearchTerm
+}
+
 func translate(searchTerm string) string {
-	log.Println(searchTerm)
-	cleanSearchTerm := strings.ReplaceAll(strings.ReplaceAll(searchTerm, "і", "и"), "ў", "щ")
+	cleanSearchTerm := cleanTerm(searchTerm)
+
 	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", cleanSearchTerm)
 
 	resp, err := http.Get(requestUrl)
