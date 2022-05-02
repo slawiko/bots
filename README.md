@@ -1,2 +1,2 @@
-# bots
-Bots monorepo
+# Russian-Belarusian translation bot
+
