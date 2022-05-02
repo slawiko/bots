@@ -34,8 +34,6 @@ func main() {
 			continue
 		}
 
-		fmt.Println(update.Message.Text)
-
 		if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
 			handleGroupMessage(bot, &update)
 		}
@@ -69,7 +67,7 @@ type Suggestion struct {
 }
 
 func translate(searchTerm string) string {
-	fmt.Println(searchTerm)
+	log.Println(searchTerm)
 	cleanSearchTerm := strings.ReplaceAll(strings.ReplaceAll(searchTerm, "і", "и"), "ў", "щ")
 	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", cleanSearchTerm)
 
