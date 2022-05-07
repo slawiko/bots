@@ -25,7 +25,7 @@ func main() {
 	bot, err := tgbotapi.NewBotAPI(BOT_API_KEY)
 
 	if err != nil {
-		log.Println("Error occurred")
+		log.Println(err)
 	}
 
 	u := tgbotapi.NewUpdate(0)
@@ -71,7 +71,6 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 
 	if strings.HasPrefix(requestText, TriggerKeyword) {
 		requestText = prepareRequestText(strings.TrimPrefix(requestText, TriggerKeyword))
-		fmt.Println(requestText)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.Text = translate(requestText)
