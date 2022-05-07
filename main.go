@@ -53,6 +53,7 @@ func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	if err != nil {
 		log.Println(err)
 		msg.Text = ErrorMessage
+		msg.DisableWebPagePreview = true
 
 		_, err := bot.Send(msg)
 		if err != nil {
