@@ -1,4 +1,4 @@
-module telegram-bot/ru-bel
+module telegram-bot/ru-bel-tg-bot
 
 go 1.18
 
