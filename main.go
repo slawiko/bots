@@ -69,6 +69,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 
 func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	// msg.ParseMode = tgbotapi.ModeHTML
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.Text = translate(strings.ToLower(update.Message.Text))
 	sendMsg(bot, msg)
@@ -137,4 +138,48 @@ func translate(searchTerm string) string {
 	log.Println(translation)
 
 	return translation
+
+	// translation, err := section.Html()
+	// if err != nil {
+	// 	log.Println(err)
+	// }
+
+	// formatted := strings.ReplaceAll(translation, "<br/>", "\n")
+
+	// section.Find("font[color=\"008000\"]").Each(func(i int, s *goquery.Selection) {
+	// 	greenHtml, err := goquery.OuterHtml(s)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	greenText := s.Text()
+
+	// 	formatted = strings.ReplaceAll(formatted, greenHtml, greenText)
+	// })
+
+	// section.Find("font[color=\"831b03\"]").Each(func(i int, s *goquery.Selection) {
+	// 	bigRedHtml, err := goquery.OuterHtml(s)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	bigRedText := s.Text()
+
+	// 	formatted = strings.ReplaceAll(formatted, bigRedHtml, "<code>"+bigRedText+"</code>")
+	// })
+
+	// section.Find("font[color=\"5f5f5f\"]").Each(func(i int, s *goquery.Selection) {
+	// 	strongHtml, err := goquery.OuterHtml(s)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+
+	// 	strongText := s.Text()
+
+	// 	fmt.Println(strongHtml)
+
+	// 	formatted = strings.ReplaceAll(formatted, strongHtml, "<i>"+strongText+"</i>")
+	// })
+
+	// fmt.Println(formatted)
+
+	// return formatted
 }
