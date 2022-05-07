@@ -70,6 +70,7 @@ func cleanTerm(searchTerm string) string {
 	cleanSearchTerm := strings.ReplaceAll(searchTerm, "ў", "щ")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "'", "ъ")
 
 	return cleanSearchTerm
 }
