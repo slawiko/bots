@@ -44,13 +44,26 @@ func main() {
 	}
 }
 
+func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
+	_, err := bot.Send(msg)
+	if err != nil {
+		log.Println(err)
+		msg.Text = "Ня змог чамусьці. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
+
+		_, err := bot.Send(msg)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
 func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	if strings.HasPrefix(strings.ToLower(update.Message.Text), TRANLSATE_KEYWORD) {
 		requestText := strings.TrimPrefix(strings.ToLower(update.Message.Text), TRANLSATE_KEYWORD)
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.Text = translate(requestText)
-		bot.Send(msg)
+		sendMsg(bot, msg)
 	}
 }
 
@@ -58,7 +71,7 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.Text = translate(strings.ToLower(update.Message.Text))
-	bot.Send(msg)
+	sendMsg(bot, msg)
 }
 
 type Suggestion struct {
