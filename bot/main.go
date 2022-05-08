@@ -15,8 +15,21 @@ import (
 
 const (
 	TriggerKeyword     = "як будзе"
-	EmptyResultMessage = "Адчапіся, дурны"
-	ErrorMessage       = "Ня змог чамусьці. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
+	EmptyResultMessage = "Нічога не знайшоў :("
+	ErrorMessage       = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
+	HelpMessage        = `Спосабы ўзаемадзеяння:
+<b>У прываце</b>: наўпрост пішыце слова на рускай мове.
+<b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
+
+Таксама вы можаце не пераходзіць на рускую раскладку і пытацца, напрыклад, слова <code>ўі</code> ці <code>олівка</code>.
+
+<i>На дадзены момант я ўмею перакладаць толькі па адным слове за раз і не разумею памылкі, прабачце.</i>
+
+© Усе пераклады я бяру з https://skarnik.by, дзякуй яму вялікі.`
+	StartMessage = `Прывітаннечка. Мяне клічуць Жэўжык, я дапамагаю перайсьці на родную мову. Вы можаце пытацца ў мяне слова на рускай, а я адкажу вам на беларускай.
+
+Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі.
+` + HelpMessage
 )
 
 var BOT_API_KEY = os.Args[1]
@@ -35,6 +48,11 @@ func main() {
 
 	for update := range updates {
 		if update.Message == nil {
+			continue
+		}
+
+		if update.Message.IsCommand() {
+			handleCommand(bot, &update)
 			continue
 		}
 
@@ -82,6 +100,23 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.Text = translate(prepareRequestText(update.Message.Text))
+	sendMsg(bot, msg)
+}
+
+func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+	switch update.Message.Command() {
+	case "start":
+		msg.ParseMode = tgbotapi.ModeHTML
+		msg.Text = StartMessage
+	case "help":
+		msg.ParseMode = tgbotapi.ModeHTML
+		msg.Text = HelpMessage
+	case "ping":
+		msg.Text = "понг"
+	}
+
 	sendMsg(bot, msg)
 }
 
