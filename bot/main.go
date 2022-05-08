@@ -28,8 +28,7 @@ const (
 © Усе пераклады я бяру з https://skarnik.by, дзякуй яму вялікі.`
 	StartMessage = `Прывітаннечка. Мяне клічуць Жэўжык, я дапамагаю перайсьці на родную мову. Вы можаце пытацца ў мяне слова на рускай, а я адкажу вам на беларускай.
 
-Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі.
-` + HelpMessage
+Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі. За дапамогай клацайце /help`
 )
 
 var BOT_API_KEY = os.Args[1]
@@ -108,10 +107,10 @@ func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 
 	switch update.Message.Command() {
 	case "start":
-		msg.ParseMode = tgbotapi.ModeHTML
 		msg.Text = StartMessage
 	case "help":
 		msg.ParseMode = tgbotapi.ModeHTML
+		msg.DisableWebPagePreview = true
 		msg.Text = HelpMessage
 	case "ping":
 		msg.Text = "понг"
