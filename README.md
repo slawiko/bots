@@ -7,6 +7,14 @@ This bot could be added in group. To use it just write `як будзе %WORD%` 
 ### Run
 
 ```bash
+cd bot
 go build
-ru-bel "TELEGRAM_BOT_API_TOKEN"
+bot "TELEGRAM_BOT_API_TOKEN"
+```
+
+or using docker
+
+```bash
+docker build -t jeujik_bot .
+docker run -i jeujik_bot "TELEGRAM_BOT_API_TOKEN"
 ```
