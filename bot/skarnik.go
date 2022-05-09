@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -27,19 +28,30 @@ func cleanTerm(searchTerm string) string {
 
 func translate(searchTerm string) (*string, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
-	firstWord := strings.Fields(cleanSearchTerm)[0]
+	words := strings.Fields(cleanSearchTerm)
 
-	resp, err := requestSkarnik(firstWord)
-	if err != nil {
-		return nil, err
+	translation := ""
+
+	for index, word := range words {
+		resp, err := requestSkarnik(word)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		wordTranslation, err := parseSkarnikResponse(resp)
+		if err != nil {
+			return nil, err
+		}
+
+		if index == 0 {
+			translation = *wordTranslation
+		} else {
+			translation = translation+";\n"+*wordTranslation
+		}
 	}
 
-	translation, err := parseSkarnikResponse(resp)
-	if err != nil {
-		return nil, err
-	}
-
-	return translation, nil
+	return &translation, nil
 }
 
 func parseSkarnikResponse(resp *http.Response) (*string, error) {
