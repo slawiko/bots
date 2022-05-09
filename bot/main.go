@@ -10,7 +10,8 @@ import (
 
 const (
 	TriggerKeyword = "як будзе"
-	ErrorMessage   = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
+	ErrorMessage   = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
+	EmptyResultMessage = "Нічога не знайшоў :("
 	HelpMessage    = `Спосабы ўзаемадзеяння:
 <b>У прываце</b>: наўпрост пішыце слова на рускай мове.
 <b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
@@ -83,7 +84,14 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		requestText = prepareRequestText(strings.TrimPrefix(requestText, TriggerKeyword))
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
-		msg.Text = translate(requestText)
+		translation, err := translate(requestText)
+		if err != nil {
+			log.Println(err)
+			msg.Text = EmptyResultMessage
+		} else {
+			msg.Text = *translation
+			log.Println(*translation)
+		}
 		sendMsg(bot, msg)
 	}
 }
@@ -91,7 +99,14 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
-	msg.Text = translate(prepareRequestText(update.Message.Text))
+	translation, err := translate(prepareRequestText(update.Message.Text))
+	if err != nil {
+		log.Println(err)
+		msg.Text = EmptyResultMessage
+	} else {
+		msg.Text = *translation
+		log.Println(*translation)
+	}
 	sendMsg(bot, msg)
 }
 

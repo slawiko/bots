@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -10,8 +11,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 )
-
-const EmptyResultMessage = "Нічога не знайшоў :("
 
 type Suggestion struct {
 	Id    int    `json:"id"`
@@ -27,7 +26,7 @@ func cleanTerm(searchTerm string) string {
 	return cleanSearchTerm
 }
 
-func translate(searchTerm string) string {
+func translate(searchTerm string) (*string, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
 
 	firstWord := strings.Fields(cleanSearchTerm)[0]
@@ -37,18 +36,24 @@ func translate(searchTerm string) string {
 	resp, err := http.Get(requestUrl)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	var suggestions []Suggestion
-	json.Unmarshal(body, &suggestions)
+	err = json.Unmarshal(body, &suggestions)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 
 	if len(suggestions) == 0 {
-		return EmptyResultMessage
+		return nil, errors.New("No results found")
 	}
 
 	requestUrl = fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestions[0].Id)
@@ -56,11 +61,13 @@ func translate(searchTerm string) string {
 	resp, err = http.Get(requestUrl)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
 		log.Println(err)
+		return nil, err
 	}
 
 	section := doc.Find("#trn")
@@ -75,7 +82,5 @@ func translate(searchTerm string) string {
 		}
 	})
 
-	log.Println(translation)
-
-	return translation
+	return &translation, nil
 }
