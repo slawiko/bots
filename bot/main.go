@@ -9,10 +9,9 @@ import (
 )
 
 const (
-	TriggerKeyword     = "як будзе"
-	EmptyResultMessage = "Нічога не знайшоў :("
-	ErrorMessage       = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
-	HelpMessage        = `Спосабы ўзаемадзеяння:
+	TriggerKeyword = "як будзе"
+	ErrorMessage   = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-tg-bot/issues"
+	HelpMessage    = `Спосабы ўзаемадзеяння:
 <b>У прываце</b>: наўпрост пішыце слова на рускай мове.
 <b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
 

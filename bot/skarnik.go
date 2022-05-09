@@ -11,6 +11,8 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+const EmptyResultMessage = "Нічога не знайшоў :("
+
 type Suggestion struct {
 	Id    int    `json:"id"`
 	Label string `json:"label"`
@@ -28,7 +30,9 @@ func cleanTerm(searchTerm string) string {
 func translate(searchTerm string) string {
 	cleanSearchTerm := cleanTerm(searchTerm)
 
-	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", cleanSearchTerm)
+	firstWord := strings.Fields(cleanSearchTerm)[0]
+
+	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", firstWord)
 
 	resp, err := http.Get(requestUrl)
 	if err != nil {
