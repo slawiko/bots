@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -28,45 +27,24 @@ func cleanTerm(searchTerm string) string {
 
 func translate(searchTerm string) (*string, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
-
 	firstWord := strings.Fields(cleanSearchTerm)[0]
 
-	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", firstWord)
-
-	resp, err := http.Get(requestUrl)
+	resp, err := requestSkarnik(firstWord)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	translation, err := parseSkarnikResponse(resp)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
-	var suggestions []Suggestion
-	err = json.Unmarshal(body, &suggestions)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
+	return translation, nil
+}
 
-	if len(suggestions) == 0 {
-		return nil, errors.New("No results found")
-	}
-
-	requestUrl = fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestions[0].Id)
-
-	resp, err = http.Get(requestUrl)
-	if err != nil {
-		log.Println(err)
-		return nil, err
-	}
-
+func parseSkarnikResponse(resp *http.Response) (*string, error) {
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 
@@ -83,4 +61,37 @@ func translate(searchTerm string) (*string, error) {
 	})
 
 	return &translation, nil
+}
+
+func requestSkarnik(searchTerm string) (*http.Response, error) {
+	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", searchTerm)
+
+	resp, err := http.Get(requestUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var suggestions []Suggestion
+	err = json.Unmarshal(body, &suggestions)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(suggestions) == 0 {
+		return nil, errors.New("No results found")
+	}
+
+	requestUrl = fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestions[0].Id)
+
+	resp, err = http.Get(requestUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
