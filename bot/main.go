@@ -26,10 +26,10 @@ const (
 Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі. За дапамогай клацайце /help`
 )
 
-var BOT_API_KEY = os.Args[1]
+var BotApiKey = os.Args[1]
 
 func main() {
-	bot, err := tgbotapi.NewBotAPI(BOT_API_KEY)
+	bot, err := tgbotapi.NewBotAPI(BotApiKey)
 	if err != nil {
 		log.Println(err)
 	}
