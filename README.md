@@ -18,3 +18,6 @@ or using docker
 docker build -t jeujik_bot .
 docker run -i jeujik_bot "TELEGRAM_BOT_API_TOKEN"
 ```
+
+### Attention
+To allow your self-hosted bot read group message you have to *disable* [privacy mode](https://core.telegram.org/bots#privacy-mode) **before** adding bot to the group. See how to do this: https://teleme.io/articles/group_privacy_mode_of_telegram_bots
