@@ -11,8 +11,7 @@ RUN cd bot && go build -o /dist/main
 FROM alpine:3.15
 
 ENV USER=botuser \
-    GROUP=botgroup \
-    APP_DIR=/bot
+    GROUP=botgroup
 
 COPY --from=build /dist /bot
 
