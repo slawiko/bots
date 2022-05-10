@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -42,6 +43,11 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		if update.InlineQuery != nil {
+			handleInlineQuery(bot, &update)
+			continue
+		}
+
 		if update.Message == nil {
 			continue
 		}
@@ -61,9 +67,109 @@ func main() {
 	}
 }
 
+func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	if len(update.InlineQuery.Query) == 0 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+	log.Println(update.InlineQuery.Query)
+	suggestions, err := getScarnikSuggestions(update.InlineQuery.Query)
+	if err != nil {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err = bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	if len(suggestions) == 0 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	articles := []tgbotapi.InlineQueryResultArticle{}
+
+	for i := 0; i < len(suggestions); i++ {
+		if i > 2 {
+			break
+		}
+
+		resp, err := requestSkarnik(suggestions[i])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		suggestionTranslation, err := parseSkarnikResponse(resp)
+		log.Println(*suggestionTranslation)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		article := tgbotapi.NewInlineQueryResultArticle(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, *suggestionTranslation)
+		article.Description = *suggestionTranslation
+		articles = append(articles, article)
+	}
+
+//	for _, suggestion := range suggestions[0:4] {
+//		resp, err := requestSkarnik(suggestion)
+//		if err != nil {
+//			log.Println(err)
+//			continue
+//		}
+//
+//		suggestionTranslation, err := parseSkarnikResponse(resp)
+//		if err != nil {
+//			log.Println(err)
+//			continue
+//		}
+//
+//		article := tgbotapi.NewInlineQueryResultArticle(strconv.Itoa(suggestion.ID), suggestion.Label, *suggestionTranslation)
+//		article.Description = *suggestionTranslation
+//		articles = append(articles, article)
+//	}
+
+	results := make([]interface{}, len(articles))
+	for i, v := range articles {
+		results[i] = v
+	}
+
+	inlineConf := tgbotapi.InlineConfig{
+		InlineQueryID: update.InlineQuery.ID,
+		Results: results,
+		IsPersonal: true,
+	}
+	_, err = bot.Request(inlineConf)
+	if err != nil {
+		log.Println("Request fail", len(results), err)
+		for _, e := range articles {
+			log.Println(e)
+			if e.InputMessageContent == nil {
+				log.Println(e.Description)
+			}
+		}
+	}
+}
+
 func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	msg.DisableNotification = true
-	
+
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Println(err)
