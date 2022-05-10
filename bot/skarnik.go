@@ -51,6 +51,10 @@ func translate(searchTerm string) (*string, error) {
 		}
 	}
 
+	if len(translation) == 0 {
+		return nil, errors.New("No translation found")
+	}
+
 	return &translation, nil
 }
 
