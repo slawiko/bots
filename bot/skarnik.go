@@ -13,7 +13,7 @@ import (
 )
 
 type Suggestion struct {
-	Id    int    `json:"id"`
+	ID    int    `json:"id"`
 	Label string `json:"label"`
 }
 
@@ -33,7 +33,16 @@ func translate(searchTerm string) (*string, error) {
 	translation := ""
 
 	for index, word := range words {
-		resp, err := requestSkarnik(word)
+		suggestions, err := getScarnikSuggestions(word)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		if len(suggestions) == 0 {
+			continue
+		}
+
+		resp, err := requestSkarnik(suggestions[0])
 		if err != nil {
 			log.Println(err)
 			continue
@@ -79,7 +88,7 @@ func parseSkarnikResponse(resp *http.Response) (*string, error) {
 	return &translation, nil
 }
 
-func requestSkarnik(searchTerm string) (*http.Response, error) {
+func getScarnikSuggestions(searchTerm string) ([]Suggestion, error) {
 	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", searchTerm)
 
 	resp, err := http.Get(requestUrl)
@@ -98,13 +107,13 @@ func requestSkarnik(searchTerm string) (*http.Response, error) {
 		return nil, err
 	}
 
-	if len(suggestions) == 0 {
-		return nil, errors.New("No results found")
-	}
+	return suggestions, nil
+}
 
-	requestUrl = fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestions[0].Id)
+func requestSkarnik(suggestion Suggestion) (*http.Response, error) {
+	requestUrl := fmt.Sprintf("https://www.skarnik.by/rusbel/%d", suggestion.ID)
 
-	resp, err = http.Get(requestUrl)
+	resp, err := http.Get(requestUrl)
 	if err != nil {
 		return nil, err
 	}
