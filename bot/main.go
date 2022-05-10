@@ -62,6 +62,8 @@ func main() {
 }
 
 func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
+	msg.DisableNotification = true
+	
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Println(err)
