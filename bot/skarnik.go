@@ -26,9 +26,13 @@ func cleanTerm(searchTerm string) string {
 	return cleanSearchTerm
 }
 
-func translate(searchTerm string) (*string, error) {
+func translate(searchTerm string) (*string, *[]Suggestion, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
 	words := strings.Fields(cleanSearchTerm)
+
+	if len(words) == 1 {
+		return translateWord(words[0])
+	}
 
 	translation := ""
 
@@ -50,7 +54,7 @@ func translate(searchTerm string) (*string, error) {
 
 		wordTranslation, err := parseSkarnikResponse(resp)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if index == 0 {
@@ -61,10 +65,39 @@ func translate(searchTerm string) (*string, error) {
 	}
 
 	if len(translation) == 0 {
-		return nil, errors.New("No translation found")
+		return nil, nil, errors.New("No translation found")
 	}
 
-	return &translation, nil
+	return &translation, nil, nil
+}
+
+func translateWord(word string) (*string, *[]Suggestion, error) {
+	suggestions, err := getScarnikSuggestions(word)
+	if err != nil {
+		log.Println(err)
+		return nil, nil, err
+	}
+	if len(suggestions) == 0 {
+		return nil, nil, errors.New("No translation found")
+	}
+
+	log.Println("her", word, suggestions[0])
+
+	if word != suggestions[0].Label {
+		return nil, &suggestions, nil
+	}
+
+	resp, err := requestSkarnik(suggestions[0])
+	if err != nil {
+		return nil, nil, err
+	}
+
+	wordTranslation, err := parseSkarnikResponse(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return wordTranslation, nil, nil
 }
 
 func parseSkarnikResponse(resp *http.Response) (*string, error) {

@@ -12,6 +12,7 @@ const (
 	TriggerKeyword = "як будзе"
 	ErrorMessage   = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
 	EmptyResultMessage = "Нічога не знайшоў :("
+	SuggestionsMessage = "Не знайшоў. Што вы малі на ўвазе?"
 	HelpMessage    = `Спосабы ўзаемадзеяння:
 <b>У прываце</b>: наўпрост пішыце слова на рускай мове.
 <b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
@@ -36,12 +37,28 @@ func main() {
 		log.Println(err)
 	}
 
+	bot.Debug = true
+
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		if update.CallbackQuery != nil {
+			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
+			msg.ReplyToMessageID = update.CallbackQuery.Message.MessageID
+			translation, sug, err := translate(prepareRequestText(update.CallbackQuery.Data))
+			if err != nil {
+				log.Println(err)
+				msg.Text = EmptyResultMessage
+			} else {
+				log.Println("her2", sug)
+				msg.Text = *translation
+				log.Println(*translation)
+			}
+			sendMsg(bot, msg)
+		}
 		if update.Message == nil {
 			continue
 		}
@@ -63,7 +80,7 @@ func main() {
 
 func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	msg.DisableNotification = true
-	
+
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Println(err)
@@ -88,10 +105,25 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		requestText = prepareRequestText(strings.TrimPrefix(requestText, TriggerKeyword))
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
-		translation, err := translate(requestText)
+		translation, _, err := translate(requestText)
 		if err != nil {
 			log.Println(err)
 			msg.Text = EmptyResultMessage
+//		} else if suggestions != nil {
+//			msg.Text = EmptyResultMessage
+//			var buttons []tgbotapi.InlineKeyboardButton
+//			for i := 0; i < len(*suggestions); i++ {
+//				log.Println(*suggestions)
+//				if i > 2 {
+//					break
+//				}
+//
+//				buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData((*suggestions)[i].Label, (*suggestions)[i].Label))
+//			}
+//			var keyboard = tgbotapi.NewInlineKeyboardMarkup(
+//				tgbotapi.NewInlineKeyboardRow(buttons...),
+//			)
+//			msg.ReplyMarkup = keyboard
 		} else {
 			msg.Text = *translation
 			log.Println(*translation)
@@ -103,10 +135,25 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
-	translation, err := translate(prepareRequestText(update.Message.Text))
+	translation, suggestions, err := translate(prepareRequestText(update.Message.Text))
 	if err != nil {
 		log.Println(err)
 		msg.Text = EmptyResultMessage
+	} else if suggestions != nil {
+		msg.Text = SuggestionsMessage
+		var buttons []tgbotapi.InlineKeyboardButton
+		for i := 0; i < len(*suggestions); i++ {
+			log.Println(*suggestions)
+			if i > 2 {
+				break
+			}
+
+			buttons = append(buttons, tgbotapi.NewInlineKeyboardButtonData((*suggestions)[i].Label, (*suggestions)[i].Label))
+		}
+		var keyboard = tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(buttons...),
+		)
+		msg.ReplyMarkup = keyboard
 	} else {
 		msg.Text = *translation
 		log.Println(*translation)
