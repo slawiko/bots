@@ -88,6 +88,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		requestText = prepareRequestText(strings.TrimPrefix(requestText, TriggerKeyword))
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
+		msg.ParseMode = tgbotapi.ModeHTML
 		translation, err := translate(requestText)
 		if err != nil {
 			log.Println(err)
@@ -103,6 +104,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
+	msg.ParseMode = tgbotapi.ModeHTML
 	translation, err := translate(prepareRequestText(update.Message.Text))
 	if err != nil {
 		log.Println(err)

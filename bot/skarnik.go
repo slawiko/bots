@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
+	"golang.org/x/exp/slices"
+	"golang.org/x/net/html"
 )
 
 type Suggestion struct {
@@ -48,15 +50,15 @@ func translate(searchTerm string) (*string, error) {
 			continue
 		}
 
-		wordTranslation, err := parseSkarnikResponse(resp)
+		wordShortTranslation, err := parseTranslation(resp.Body)
 		if err != nil {
 			return nil, err
 		}
 
 		if index == 0 {
-			translation = *wordTranslation
+			translation = *wordShortTranslation
 		} else {
-			translation = translation+";\n"+*wordTranslation
+			translation = translation + ";\n" + *wordShortTranslation
 		}
 	}
 
@@ -67,25 +69,61 @@ func translate(searchTerm string) (*string, error) {
 	return &translation, nil
 }
 
-func parseSkarnikResponse(resp *http.Response) (*string, error) {
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return nil, err
+func parseTranslation(body io.Reader) (detailedTranslation *string, err error) {
+	tknzr := html.NewTokenizer(body)
+
+	stack := stack{
+		stack: make([]string, 0),
 	}
 
-	section := doc.Find("#trn")
+	detailedTranslation = new(string)
 
-	translation := ""
+	for {
+		tokenType := tknzr.Next()
 
-	section.Find("font[color=\"831b03\"]").Each(func(i int, s *goquery.Selection) {
-		if i == 0 {
-			translation += s.Text()
-		} else {
-			translation += fmt.Sprintf(", %s", s.Text())
+		switch {
+		case tokenType == html.StartTagToken:
+			t := tknzr.Token()
+
+			if isBoldToken(t) {
+				stack.Push("bold")
+				if len(*detailedTranslation) == 0 {
+					*detailedTranslation += "<b>"
+				} else {
+					*detailedTranslation += ", <b>"
+				}
+			}
+
+		case tokenType == html.EndTagToken:
+			// t := tknzr.Token()
+
+			head, err := stack.Head()
+			if err == nil && head == "bold" {
+				*detailedTranslation += "</b>"
+				stack.Pop()
+			}
+		case tokenType == html.TextToken:
+			t := tknzr.Token()
+
+			_, err := stack.Head()
+
+			if err == nil {
+				*detailedTranslation += t.Data
+			}
+		case tokenType == html.ErrorToken:
+			return detailedTranslation, err
 		}
-	})
+	}
+}
 
-	return &translation, nil
+func isBoldToken(token html.Token) bool {
+	if token.Data == "font" {
+		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool { return attr.Key == "color" && attr.Val == "831b03" })
+
+		return idx >= 0
+	}
+
+	return false
 }
 
 func getScarnikSuggestions(searchTerm string) ([]Suggestion, error) {
