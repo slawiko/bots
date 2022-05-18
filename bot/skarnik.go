@@ -28,11 +28,35 @@ func cleanTerm(searchTerm string) string {
 	return cleanSearchTerm
 }
 
-func translate(searchTerm string) (*string, error) {
+// TODO: refactor multiword request
+func translate(searchTerm string, isDetailed bool) (*string, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
 	words := strings.Fields(cleanSearchTerm)
 
 	translation := ""
+
+	if len(words) == 1 {
+		suggestions, err := getScarnikSuggestions(words[0])
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		if len(suggestions) == 0 {
+			return nil, err
+		}
+
+		resp, err := requestSkarnik(suggestions[0])
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+
+		if isDetailed {
+			return detailedTranslationParse(resp.Body)
+		} else {
+			return shortTranslationParse(resp.Body)
+		}
+	}
 
 	for index, word := range words {
 		suggestions, err := getScarnikSuggestions(word)
@@ -50,7 +74,7 @@ func translate(searchTerm string) (*string, error) {
 			continue
 		}
 
-		wordShortTranslation, err := parseTranslation(resp.Body)
+		wordShortTranslation, err := shortTranslationParse(resp.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -63,60 +87,128 @@ func translate(searchTerm string) (*string, error) {
 	}
 
 	if len(translation) == 0 {
-		return nil, errors.New("No translation found")
+		return nil, errors.New("no translation found")
 	}
 
 	return &translation, nil
 }
 
-func parseTranslation(body io.Reader) (detailedTranslation *string, err error) {
+func detailedTranslationParse(body io.Reader) (translation *string, err error) {
 	tknzr := html.NewTokenizer(body)
-
 	stack := stack{
-		stack: make([]string, 0),
+		stack: make([]html.Token, 0),
 	}
-
-	detailedTranslation = new(string)
+	translation = new(string)
 
 	for {
 		tokenType := tknzr.Next()
+		if tokenType == html.ErrorToken {
+			return translation, err
+		}
+
+		t := tknzr.Token()
+
+		// translation in skarnik is inside p#trn element, so no need to check any other elements
+		if stack.Empty() && !isPTRN(t) {
+			continue
+		}
 
 		switch {
 		case tokenType == html.StartTagToken:
-			t := tknzr.Token()
-
-			if isBoldToken(t) {
-				stack.Push("bold")
-				if len(*detailedTranslation) == 0 {
-					*detailedTranslation += "<b>"
-				} else {
-					*detailedTranslation += ", <b>"
-				}
+			if isItalic(t) || isGreyText(t) {
+				stack.Push(t)
+				*translation += "<i>"
+			} else if isTranslationToken(t) {
+				stack.Push(t)
+				*translation += "<b>"
+			} else if isP(t) {
+				stack.Push(t)
+			}
+		case tokenType == html.EndTagToken:
+			head, err := stack.Head()
+			if err != nil {
+				continue
 			}
 
-		case tokenType == html.EndTagToken:
-			// t := tknzr.Token()
-
-			head, err := stack.Head()
-			if err == nil && head == "bold" {
-				*detailedTranslation += "</b>"
+			if isBr(t) {
+				*translation += "\n"
+			} else if isItalic(head) || isGreyText(head) {
+				*translation += "</i>"
+				stack.Pop()
+			} else if isTranslationToken(head) {
+				*translation += "</b>"
+				stack.Pop()
+			} else if isP(t) {
 				stack.Pop()
 			}
 		case tokenType == html.TextToken:
-			t := tknzr.Token()
-
-			_, err := stack.Head()
-
-			if err == nil {
-				*detailedTranslation += t.Data
+			if stack.Empty() {
+				continue
 			}
-		case tokenType == html.ErrorToken:
-			return detailedTranslation, err
+
+			*translation += t.Data
 		}
 	}
 }
 
-func isBoldToken(token html.Token) bool {
+func shortTranslationParse(body io.Reader) (translation *string, err error) {
+	tknzr := html.NewTokenizer(body)
+	stack := stack{
+		stack: make([]html.Token, 0),
+	}
+	translation = new(string)
+
+	for {
+		tokenType := tknzr.Next()
+		if tokenType == html.ErrorToken {
+			return translation, err
+		}
+
+		t := tknzr.Token()
+
+		// translation in skarnik is inside p#trn element, so no need to check any other elements
+		if stack.Empty() && !isPTRN(t) {
+			continue
+		}
+
+		switch {
+		case tokenType == html.StartTagToken:
+			if isTranslationToken(t) {
+				stack.Push(t)
+
+				if len(*translation) == 0 {
+					*translation += "<b>"
+				} else {
+					*translation += ", <b>"
+				}
+			} else if isP(t) {
+				stack.Push(t)
+			}
+		case tokenType == html.EndTagToken:
+			head, err := stack.Head()
+			if err != nil {
+				continue
+			}
+
+			if isTranslationToken(head) {
+				*translation += "</b>"
+				stack.Pop()
+			} else if isP(t) {
+				stack.Pop()
+			}
+		case tokenType == html.TextToken:
+			head, err := stack.Head()
+			if err != nil {
+				continue
+			}
+			if isTranslationToken(head) {
+				*translation += t.Data
+			}
+		}
+	}
+}
+
+func isTranslationToken(token html.Token) bool {
 	if token.Data == "font" {
 		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool { return attr.Key == "color" && attr.Val == "831b03" })
 
@@ -124,6 +216,51 @@ func isBoldToken(token html.Token) bool {
 	}
 
 	return false
+}
+
+func isPTRN(token html.Token) bool {
+	if isP(token) {
+		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool {
+			return attr.Key == "id" && attr.Val == "trn"
+		})
+
+		return idx >= 0
+	}
+
+	return false
+}
+
+// TODO: compare with slices.IndexFunc
+func searchAttributes(attrs []html.Attribute, key string, val string) bool {
+	for i := 0; i < len(attrs); i++ {
+		if attrs[i].Key == key && attrs[i].Val == val {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isGreyText(token html.Token) bool {
+	if token.Data == "font" {
+		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool { return attr.Key == "color" && attr.Val == "5f5f5f" })
+
+		return idx >= 0
+	}
+
+	return false
+}
+
+func isP(token html.Token) bool {
+	return token.Data == "p"
+}
+
+func isBr(token html.Token) bool {
+	return token.Data == "br"
+}
+
+func isItalic(token html.Token) bool {
+	return token.Data == "i"
 }
 
 func getScarnikSuggestions(searchTerm string) ([]Suggestion, error) {

@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	TriggerKeyword = "як будзе"
-	ErrorMessage   = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
+	TriggerKeyword     = "як будзе"
+	ErrorMessage       = "Нешта чамусьці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
 	EmptyResultMessage = "Нічога не знайшоў :("
-	HelpMessage    = `Спосабы ўзаемадзеяння:
+	HelpMessage        = `Спосабы ўзаемадзеяння:
 <b>У прываце</b>: наўпрост пішыце слова на рускай мове.
 <b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
 
@@ -42,20 +42,19 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
+		if update.CallbackQuery != nil {
+			handleFullTranslationRequest(bot, update.CallbackQuery)
+			continue
+		}
 		if update.Message == nil {
 			continue
 		}
 
 		if update.Message.IsCommand() {
 			handleCommand(bot, &update)
-			continue
-		}
-
-		if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
+		} else if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
 			handleGroupMessage(bot, &update)
-		}
-
-		if update.Message.Chat.IsPrivate() {
+		} else if update.Message.Chat.IsPrivate() {
 			handlePrivateMessage(bot, &update)
 		}
 	}
@@ -63,7 +62,7 @@ func main() {
 
 func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	msg.DisableNotification = true
-	
+
 	_, err := bot.Send(msg)
 	if err != nil {
 		log.Println(err)
@@ -89,7 +88,12 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.ParseMode = tgbotapi.ModeHTML
-		translation, err := translate(requestText)
+		// TODO: do not show button for multi words request
+		translation, err := translate(requestText, false)
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(requestText))),
+		)
+		msg.ReplyMarkup = keyboard
 		if err != nil {
 			log.Println(err)
 			msg.Text = EmptyResultMessage
@@ -105,7 +109,11 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = tgbotapi.ModeHTML
-	translation, err := translate(prepareRequestText(update.Message.Text))
+	translation, err := translate(prepareRequestText(update.Message.Text), false)
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(update.Message.Text))),
+	)
+	msg.ReplyMarkup = keyboard
 	if err != nil {
 		log.Println(err)
 		msg.Text = EmptyResultMessage
@@ -114,6 +122,24 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		log.Println(*translation)
 	}
 	sendMsg(bot, msg)
+}
+
+func handleFullTranslationRequest(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
+	editMsg := tgbotapi.NewEditMessageText(callback.Message.Chat.ID, callback.Message.MessageID, "")
+	editMsg.ParseMode = tgbotapi.ModeHTML
+
+	fullTranslation, err := translate(prepareRequestText(callback.Data), true)
+	if err != nil {
+		log.Println(err)
+		editMsg.Text = EmptyResultMessage
+	}
+
+	editMsg.Text = *fullTranslation
+
+	_, err = bot.Send(editMsg)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
