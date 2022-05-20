@@ -42,7 +42,7 @@ func translate(searchTerm string, isDetailed bool) (*string, error) {
 			return nil, err
 		}
 		if len(suggestions) == 0 {
-			return nil, err
+			return nil, err //errors.New("no translation found")
 		}
 
 		resp, err := requestSkarnik(suggestions[0])
