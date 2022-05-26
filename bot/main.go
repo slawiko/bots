@@ -33,6 +33,7 @@ const (
 )
 
 var BotApiKey = os.Args[1]
+var Version = os.Getenv("VERSION")
 
 func main() {
 	bot, err := tgbotapi.NewBotAPI(BotApiKey)
@@ -188,8 +189,12 @@ func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		msg.ParseMode = tgbotapi.ModeHTML
 		msg.DisableWebPagePreview = true
 		msg.Text = HelpMessage
-	case "ping":
-		msg.Text = "понг"
+	case "version":
+		if len(Version) > 0 {
+			msg.Text = Version
+		} else {
+			msg.Text = "unknown"
+		}
 	}
 
 	sendMsg(bot, msg)
