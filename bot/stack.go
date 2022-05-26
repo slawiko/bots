@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-
 	"golang.org/x/net/html"
 )
 

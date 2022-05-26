@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -26,6 +28,8 @@ const (
 	StartMessage = `Прывітаннечка. Мяне клічуць Жэўжык, я дапамагаю перайсці на родную мову. Вы можаце пытацца ў мяне слова на рускай, а я адкажу вам на беларускай.
 
 Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі. За дапамогай клацайце /help`
+	DetailedButton = "Падрабязней"
+	ShortButton    = "Карацей"
 )
 
 var BotApiKey = os.Args[1]
@@ -43,7 +47,7 @@ func main() {
 
 	for update := range updates {
 		if update.CallbackQuery != nil {
-			handleFullTranslationRequest(bot, update.CallbackQuery)
+			handleCallback(bot, update.CallbackQuery)
 			continue
 		}
 		if update.Message == nil {
@@ -76,31 +80,38 @@ func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	}
 }
 
-func prepareRequestText(dirtyRequestText string) string {
-	return strings.ToLower(strings.TrimSpace(dirtyRequestText))
+func prepareRequestText(searchTerm string) string {
+	cleanSearchTerm := strings.ToLower(strings.TrimSpace(searchTerm))
+	cleanSearchTerm = strings.ReplaceAll(searchTerm, "ў", "щ")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "'", "ъ")
+
+	return cleanSearchTerm
 }
 
 func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	requestText := prepareRequestText(update.Message.Text)
 
 	if strings.HasPrefix(requestText, TriggerKeyword) {
-		requestText = prepareRequestText(strings.TrimPrefix(requestText, TriggerKeyword))
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.ParseMode = tgbotapi.ModeHTML
-		// TODO: do not show button for multi words request
+
+		requestText = strings.TrimPrefix(requestText, TriggerKeyword)
 		translation, err := Translate(requestText, false)
-		keyboard := tgbotapi.NewInlineKeyboardMarkup(
-			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(requestText))),
-		)
-		msg.ReplyMarkup = keyboard
 		if err != nil {
-			log.Println(err)
 			msg.Text = EmptyResultMessage
+			log.Println(err)
 		} else {
 			msg.Text = *translation
 			log.Println(*translation)
+			keyboard := tgbotapi.NewInlineKeyboardMarkup(
+				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
+			)
+			msg.ReplyMarkup = keyboard
 		}
+
 		sendMsg(bot, msg)
 	}
 }
@@ -109,32 +120,57 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = tgbotapi.ModeHTML
-	translation, err := Translate(prepareRequestText(update.Message.Text), false)
-	keyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(update.Message.Text))),
-	)
-	msg.ReplyMarkup = keyboard
+
+	requestText := prepareRequestText(update.Message.Text)
+	translation, err := Translate(requestText, false)
 	if err != nil {
-		log.Println(err)
 		msg.Text = EmptyResultMessage
+		log.Println(err)
 	} else {
 		msg.Text = *translation
 		log.Println(*translation)
+		keyboard := tgbotapi.NewInlineKeyboardMarkup(
+			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
+		)
+		msg.ReplyMarkup = keyboard
 	}
+
 	sendMsg(bot, msg)
 }
 
-func handleFullTranslationRequest(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
+func marshallCallbackData(word string, shouldNextBeDetailed bool) string {
+	return fmt.Sprintf("%s$%v", word, shouldNextBeDetailed)
+}
+
+func unmarshallCallbackData(data string) (string, bool) {
+	parts := strings.Split(data, "$")
+	isDetailed, _ := strconv.ParseBool(parts[1])
+	return parts[0], isDetailed
+}
+
+func handleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
 	editMsg := tgbotapi.NewEditMessageText(callback.Message.Chat.ID, callback.Message.MessageID, "")
 	editMsg.ParseMode = tgbotapi.ModeHTML
+	word, isDetailed := unmarshallCallbackData(callback.Data)
 
-	fullTranslation, err := Translate(prepareRequestText(callback.Data), true)
+	translation, err := Translate(word, isDetailed)
+	var buttonText string
+	if isDetailed {
+		buttonText = ShortButton
+	} else {
+		buttonText = DetailedButton
+	}
+	keyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(buttonText, marshallCallbackData(word, !isDetailed))),
+	)
+	editMsg.ReplyMarkup = &keyboard
 	if err != nil {
 		log.Println(err)
 		editMsg.Text = EmptyResultMessage
+	} else {
+		editMsg.Text = *translation
+		log.Println(*translation)
 	}
-
-	editMsg.Text = *fullTranslation
 
 	_, err = bot.Send(editMsg)
 	if err != nil {

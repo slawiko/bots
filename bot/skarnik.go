@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/slices"
+	"golang.org/x/net/html"
 	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
-
-	"golang.org/x/exp/slices"
-	"golang.org/x/net/html"
 )
 
 type Suggestion struct {
@@ -19,78 +18,29 @@ type Suggestion struct {
 	Label string `json:"label"`
 }
 
-func cleanTerm(searchTerm string) string {
-	cleanSearchTerm := strings.ReplaceAll(searchTerm, "ў", "щ")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "'", "ъ")
-
-	return cleanSearchTerm
-}
-
-// TODO: refactor multiword request
 func Translate(searchTerm string, isDetailed bool) (*string, error) {
-	cleanSearchTerm := cleanTerm(searchTerm)
-	words := strings.Fields(cleanSearchTerm)
+	words := strings.Fields(searchTerm)
 
-	translation := ""
-
-	if len(words) == 1 {
-		suggestions, err := getScarnikSuggestions(words[0])
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		if len(suggestions) == 0 {
-			return nil, err //errors.New("no translation found")
-		}
-
-		resp, err := requestSkarnik(suggestions[0])
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-
-		if isDetailed {
-			return DetailedTranslationParse(resp.Body)
-		} else {
-			return ShortTranslationParse(resp.Body)
-		}
+	suggestions, err := getSkarnikSuggestions(words[0])
+	if err != nil {
+		log.Println(err)
+		return nil, err
 	}
-
-	for index, word := range words {
-		suggestions, err := getScarnikSuggestions(word)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if len(suggestions) == 0 {
-			continue
-		}
-
-		resp, err := requestSkarnik(suggestions[0])
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		wordShortTranslation, err := ShortTranslationParse(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		if index == 0 {
-			translation = *wordShortTranslation
-		} else {
-			translation = translation + ";\n" + *wordShortTranslation
-		}
-	}
-
-	if len(translation) == 0 {
+	if len(suggestions) == 0 {
 		return nil, errors.New("no translation found")
 	}
 
-	return &translation, nil
+	resp, err := requestSkarnik(suggestions[0])
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	if isDetailed {
+		return DetailedTranslationParse(resp.Body)
+	} else {
+		return ShortTranslationParse(resp.Body)
+	}
 }
 
 func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
@@ -263,7 +213,7 @@ func isItalic(token html.Token) bool {
 	return token.Data == "i"
 }
 
-func getScarnikSuggestions(searchTerm string) ([]Suggestion, error) {
+func getSkarnikSuggestions(searchTerm string) ([]Suggestion, error) {
 	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", searchTerm)
 
 	resp, err := http.Get(requestUrl)
