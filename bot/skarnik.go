@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"golang.org/x/net/html"
 	"io"
 	"io/ioutil"
@@ -159,28 +158,13 @@ func ShortTranslationParse(body io.Reader) (translation *string, err error) {
 }
 
 func isTranslationToken(token html.Token) bool {
-	if token.Data == "font" {
-		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool { return attr.Key == "color" && attr.Val == "831b03" })
-
-		return idx >= 0
-	}
-
-	return false
+	return searchAttributes(token.Attr, "color", "831b03")
 }
 
 func isPTRN(token html.Token) bool {
-	if isP(token) {
-		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool {
-			return attr.Key == "id" && attr.Val == "trn"
-		})
-
-		return idx >= 0
-	}
-
-	return false
+	return searchAttributes(token.Attr, "id", "trn")
 }
 
-// TODO: compare with slices.IndexFunc
 func searchAttributes(attrs []html.Attribute, key string, val string) bool {
 	for i := 0; i < len(attrs); i++ {
 		if attrs[i].Key == key && attrs[i].Val == val {
@@ -192,13 +176,7 @@ func searchAttributes(attrs []html.Attribute, key string, val string) bool {
 }
 
 func isGreyText(token html.Token) bool {
-	if token.Data == "font" {
-		idx := slices.IndexFunc(token.Attr, func(attr html.Attribute) bool { return attr.Key == "color" && attr.Val == "5f5f5f" })
-
-		return idx >= 0
-	}
-
-	return false
+	return searchAttributes(token.Attr, "color", "5f5f5f")
 }
 
 func isP(token html.Token) bool {
