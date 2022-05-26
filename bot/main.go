@@ -89,7 +89,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.ParseMode = tgbotapi.ModeHTML
 		// TODO: do not show button for multi words request
-		translation, err := translate(requestText, false)
+		translation, err := Translate(requestText, false)
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(requestText))),
 		)
@@ -109,7 +109,7 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = tgbotapi.ModeHTML
-	translation, err := translate(prepareRequestText(update.Message.Text), false)
+	translation, err := Translate(prepareRequestText(update.Message.Text), false)
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Падрабязней", prepareRequestText(update.Message.Text))),
 	)
@@ -128,7 +128,7 @@ func handleFullTranslationRequest(bot *tgbotapi.BotAPI, callback *tgbotapi.Callb
 	editMsg := tgbotapi.NewEditMessageText(callback.Message.Chat.ID, callback.Message.MessageID, "")
 	editMsg.ParseMode = tgbotapi.ModeHTML
 
-	fullTranslation, err := translate(prepareRequestText(callback.Data), true)
+	fullTranslation, err := Translate(prepareRequestText(callback.Data), true)
 	if err != nil {
 		log.Println(err)
 		editMsg.Text = EmptyResultMessage

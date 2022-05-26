@@ -29,7 +29,7 @@ func cleanTerm(searchTerm string) string {
 }
 
 // TODO: refactor multiword request
-func translate(searchTerm string, isDetailed bool) (*string, error) {
+func Translate(searchTerm string, isDetailed bool) (*string, error) {
 	cleanSearchTerm := cleanTerm(searchTerm)
 	words := strings.Fields(cleanSearchTerm)
 
@@ -52,9 +52,9 @@ func translate(searchTerm string, isDetailed bool) (*string, error) {
 		}
 
 		if isDetailed {
-			return detailedTranslationParse(resp.Body)
+			return DetailedTranslationParse(resp.Body)
 		} else {
-			return shortTranslationParse(resp.Body)
+			return ShortTranslationParse(resp.Body)
 		}
 	}
 
@@ -74,7 +74,7 @@ func translate(searchTerm string, isDetailed bool) (*string, error) {
 			continue
 		}
 
-		wordShortTranslation, err := shortTranslationParse(resp.Body)
+		wordShortTranslation, err := ShortTranslationParse(resp.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -93,7 +93,7 @@ func translate(searchTerm string, isDetailed bool) (*string, error) {
 	return &translation, nil
 }
 
-func detailedTranslationParse(body io.Reader) (translation *string, err error) {
+func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
 	tknzr := html.NewTokenizer(body)
 	stack := stack{
 		stack: make([]html.Token, 0),
@@ -151,7 +151,7 @@ func detailedTranslationParse(body io.Reader) (translation *string, err error) {
 	}
 }
 
-func shortTranslationParse(body io.Reader) (translation *string, err error) {
+func ShortTranslationParse(body io.Reader) (translation *string, err error) {
 	tknzr := html.NewTokenizer(body)
 	stack := stack{
 		stack: make([]html.Token, 0),
