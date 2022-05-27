@@ -83,7 +83,7 @@ func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 
 func prepareRequestText(searchTerm string) string {
 	cleanSearchTerm := strings.ToLower(strings.TrimSpace(searchTerm))
-	cleanSearchTerm = strings.ReplaceAll(searchTerm, "ў", "щ")
+	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "ў", "щ")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "'", "ъ")
