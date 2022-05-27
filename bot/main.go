@@ -81,7 +81,7 @@ func sendMsg(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig) {
 	}
 }
 
-func prepareRequestText(searchTerm string) string {
+func PrepareRequestText(searchTerm string) string {
 	cleanSearchTerm := strings.ToLower(strings.TrimSpace(searchTerm))
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "ў", "щ")
 	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
@@ -92,7 +92,7 @@ func prepareRequestText(searchTerm string) string {
 }
 
 func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
-	requestText := prepareRequestText(update.Message.Text)
+	requestText := PrepareRequestText(update.Message.Text)
 
 	if strings.HasPrefix(requestText, TriggerKeyword) {
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
@@ -122,7 +122,7 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	msg.ReplyToMessageID = update.Message.MessageID
 	msg.ParseMode = tgbotapi.ModeHTML
 
-	requestText := prepareRequestText(update.Message.Text)
+	requestText := PrepareRequestText(update.Message.Text)
 	translation, err := Translate(requestText, false)
 	if err != nil {
 		msg.Text = EmptyResultMessage
