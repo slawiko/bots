@@ -15,8 +15,9 @@ const (
 	ErrorMessage       = "Нешта чамусці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
 	EmptyResultMessage = "Нічога не знайшоў :("
 	HelpMessage        = `Спосабы ўзаемадзеяння:
-<b>У прываце</b>: наўпрост пішыце слова на рускай мове.
+<b>У прываце</b>: наўпрост пішыце слова на рускай мове. Увага: я лагірую тэкст, што вы напішаце.
 <b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
+Увага: тут я лагірую толькі факт карыстання гэтай функцыяй 
 
 Таксама вы можаце не пераходзіць на рускую раскладку і пытацца, напрыклад, слова <code>ўавель</code> ці <code>олівка</code>.
 
@@ -48,6 +49,7 @@ func main() {
 
 	for update := range updates {
 		if update.CallbackQuery != nil {
+			log.Println("callback") // do not log callback requests, since it could go from group
 			handleCallback(bot, update.CallbackQuery)
 			continue
 		}
@@ -56,10 +58,13 @@ func main() {
 		}
 
 		if update.Message.IsCommand() {
+			log.Println("command", update.Message.Command())
 			handleCommand(bot, &update)
 		} else if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
+			log.Println("group") // do not log group message requests, since there could be sensitive data
 			handleGroupMessage(bot, &update)
 		} else if update.Message.Chat.IsPrivate() {
+			log.Println("private", update.Message.Text)
 			handlePrivateMessage(bot, &update)
 		}
 	}
@@ -106,7 +111,6 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 			log.Println(err)
 		} else {
 			msg.Text = *translation
-			log.Println(*translation)
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
 			)
@@ -129,7 +133,6 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		log.Println(err)
 	} else {
 		msg.Text = *translation
-		log.Println(*translation)
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
 		)
@@ -170,7 +173,6 @@ func handleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
 		editMsg.Text = EmptyResultMessage
 	} else {
 		editMsg.Text = *translation
-		log.Println(*translation)
 	}
 
 	_, err = bot.Send(editMsg)
