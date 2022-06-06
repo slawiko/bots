@@ -179,6 +179,8 @@ func handleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
 	if err != nil {
 		log.Println(err)
 	}
+
+	bot.Request(tgbotapi.NewCallback(callback.ID, "")) // for hiding alert. Looks wrong, but donno how else
 }
 
 func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
