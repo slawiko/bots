@@ -195,7 +195,8 @@ func handleCommand(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		msg.Text = HelpMessage
 	case "version":
 		if len(Version) > 0 {
-			msg.Text = Version
+			msg.ParseMode = tgbotapi.ModeHTML
+			msg.Text = fmt.Sprintf("<a href=\"https://github.com/slawiko/ru-bel-bot/releases/tag/%s\">%s</a>", Version, Version)
 		} else {
 			msg.Text = "unknown"
 		}
