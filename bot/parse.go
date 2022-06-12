@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"golang.org/x/net/html"
 	"io"
+	"strings"
 )
 
 func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
@@ -11,11 +13,24 @@ func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
 		stack: make([]html.Token, 0),
 	}
 	translation = new(string)
+	tooLong := false
 
 	for {
 		tokenType := tknzr.Next()
 		if tokenType == html.ErrorToken {
+			*translation = strings.TrimSpace(*translation)
+			if len(*translation) == 0 {
+				return nil, errors.New("nothing is parsed")
+			}
+			if tooLong {
+				*translation += "\n\n<code>... Далей чытайце на skarnik.by</code>"
+			}
 			return translation, err
+		}
+
+		// 300 - empirical number in favor of simplicity
+		if len(*translation)+300 > TelegramMessageMaxSize {
+			tooLong = true
 		}
 
 		t := tknzr.Token()
@@ -27,6 +42,10 @@ func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
 
 		switch {
 		case tokenType == html.StartTagToken:
+			if tooLong {
+				continue
+			}
+
 			if isItalic(t) || isGreyText(t) {
 				stack.Push(t)
 				*translation += "<i>"
@@ -54,7 +73,7 @@ func DetailedTranslationParse(body io.Reader) (translation *string, err error) {
 				stack.Pop()
 			}
 		case tokenType == html.TextToken:
-			if stack.Empty() {
+			if stack.Empty() || tooLong {
 				continue
 			}
 
@@ -73,6 +92,9 @@ func ShortTranslationParse(body io.Reader) (translation *string, err error) {
 	for {
 		tokenType := tknzr.Next()
 		if tokenType == html.ErrorToken {
+			if len(*translation) == 0 {
+				return nil, errors.New("nothing is parsed")
+			}
 			return translation, err
 		}
 

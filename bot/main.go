@@ -33,6 +33,8 @@ const (
 	ShortButton    = "Карацей"
 )
 
+const TelegramMessageMaxSize = 4096
+
 var BotApiKey = os.Args[1]
 var Version = os.Getenv("VERSION")
 
