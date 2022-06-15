@@ -28,8 +28,8 @@ func TestShortTranslationParse(t *testing.T) {
 			if err != tc.expectedError {
 				t.Errorf("expected (%s), got (%s)", tc.expectedError, err)
 			}
-			if *translation != tc.expectedTranslation {
-				t.Errorf("expected (%s), got (%s)", tc.expectedTranslation, *translation)
+			if translation != tc.expectedTranslation {
+				t.Errorf("expected (%s), got (%s)", tc.expectedTranslation, translation)
 			}
 		})
 	}
@@ -39,7 +39,7 @@ func TestDetailedTranslationParse(t *testing.T) {
 	tests := []parseTestCase{{
 		name:                "Should parse correctly",
 		filename:            "./test_data/деревня.html",
-		expectedTranslation: "\n                              <b>вёска</b>, <i>-кі женский род</i>\n                        ",
+		expectedTranslation: "<b>вёска</b>, <i>-кі женский род</i>",
 		expectedError:       nil,
 	}}
 
@@ -51,8 +51,8 @@ func TestDetailedTranslationParse(t *testing.T) {
 			if err != tc.expectedError {
 				t.Errorf("expected (%s), got (%s)", tc.expectedError, err)
 			}
-			if *translation != tc.expectedTranslation {
-				t.Errorf("expected (%s), got (%s)", tc.expectedTranslation, *translation)
+			if translation != tc.expectedTranslation {
+				t.Errorf("expected (%s), got (%s)", tc.expectedTranslation, translation)
 			}
 		})
 	}

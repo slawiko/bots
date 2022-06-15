@@ -112,7 +112,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 			msg.Text = EmptyResultMessage
 			log.Println(err)
 		} else {
-			msg.Text = *translation
+			msg.Text = translation
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
 			)
@@ -134,7 +134,7 @@ func handlePrivateMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		msg.Text = EmptyResultMessage
 		log.Println(err)
 	} else {
-		msg.Text = *translation
+		msg.Text = translation
 		keyboard := tgbotapi.NewInlineKeyboardMarkup(
 			tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
 		)
@@ -174,7 +174,7 @@ func handleCallback(bot *tgbotapi.BotAPI, callback *tgbotapi.CallbackQuery) {
 		log.Println(err)
 		editMsg.Text = EmptyResultMessage
 	} else {
-		editMsg.Text = *translation
+		editMsg.Text = translation
 	}
 
 	_, err = bot.Send(editMsg)

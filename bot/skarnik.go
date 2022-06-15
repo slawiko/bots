@@ -15,22 +15,22 @@ type Suggestion struct {
 	Label string `json:"label"`
 }
 
-func Translate(searchTerm string, isDetailed bool) (*string, error) {
+func Translate(searchTerm string, isDetailed bool) (string, error) {
 	words := strings.Fields(searchTerm)
 
 	suggestions, err := getSkarnikSuggestions(words[0])
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return "", err
 	}
 	if len(suggestions) == 0 {
-		return nil, errors.New("no translation found")
+		return "", errors.New("no translation found")
 	}
 
 	resp, err := requestSkarnik(suggestions[0])
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return "", err
 	}
 
 	if isDetailed {
