@@ -63,7 +63,6 @@ func main() {
 			log.Println("command", update.Message.Command())
 			handleCommand(bot, &update)
 		} else if update.Message.Chat.IsGroup() || update.Message.Chat.IsSuperGroup() {
-			log.Println("group") // do not log group message requests, since there could be sensitive data
 			handleGroupMessage(bot, &update)
 		} else if update.Message.Chat.IsPrivate() {
 			log.Println("private", update.Message.Text)
@@ -102,6 +101,7 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 	requestText := PrepareRequestText(update.Message.Text)
 
 	if strings.HasPrefix(requestText, TriggerKeyword) {
+		log.Println("group") // do not log group message requests, since there could be sensitive data
 		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 		msg.ReplyToMessageID = update.Message.MessageID
 		msg.ParseMode = tgbotapi.ModeHTML
