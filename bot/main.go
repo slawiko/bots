@@ -112,7 +112,11 @@ func handleGroupMessage(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 			msg.Text = EmptyResultMessage
 			log.Println(err)
 		} else {
-			msg.Text = translation
+			if joke() {
+				msg.Text = fmt.Sprintf("%s\n%s", jokeMessage(), translation)
+			} else {
+				msg.Text = translation
+			}
 			keyboard := tgbotapi.NewInlineKeyboardMarkup(
 				tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData(DetailedButton, marshallCallbackData(requestText, true))),
 			)
