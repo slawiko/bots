@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const PROBABILITY = 0.042
+const PROBABILITY = 0.10
 
 func getJokes() []string {
 	return []string{"Сорамна такое ня ведаць.", "Я спадзяюся вы запытваеце гэта ў апошні раз.", "Адчуванне, быццам ужо запытвалі.", "А вы сапраўды з Беларусі?"}
