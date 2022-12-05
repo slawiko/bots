@@ -36,7 +36,8 @@ func Translate(searchTerm string, isDetailed bool) (string, error) {
 	if isDetailed {
 		return DetailedTranslationParse(resp.Body)
 	} else {
-		return ShortTranslationParse(resp.Body)
+		_, htmltranslation, err := ShortTranslationParse(resp.Body)
+		return htmltranslation, err
 	}
 }
 

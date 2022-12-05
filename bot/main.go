@@ -125,15 +125,14 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 			continue
 		}
 
-		suggestionTranslation, err := parseSkarnikResponse(resp)
-		log.Println(*suggestionTranslation)
+		sgstTranslation, HTMLSgstTranslation, err := ShortTranslationParse(resp.Body)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		article := tgbotapi.NewInlineQueryResultArticle(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, *suggestionTranslation)
-		article.Description = *suggestionTranslation
+		article := tgbotapi.NewInlineQueryResultArticleHTML(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, HTMLSgstTranslation)
+		article.Description = sgstTranslation
 		articles = append(articles, article)
 	}
 
