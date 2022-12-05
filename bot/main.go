@@ -56,6 +56,7 @@ func main() {
 			continue
 		}
 		if update.InlineQuery != nil {
+			log.Println("inline query", update.InlineQuery.Query)
 			handleInlineQuery(bot, &update)
 			continue
 		}
