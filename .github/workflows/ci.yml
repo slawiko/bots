@@ -22,6 +22,5 @@ jobs:
 
       - name: build and test
         run: |
-          go get -v
           go test -timeout=60s -v -race -p 1
           go build -race
