@@ -22,5 +22,5 @@ jobs:
 
       - name: build and test
         run: |
-          go test -timeout=60s -v -race -p 1
-          go build -race
+          go test github.com/ru-bel-bot/bot -timeout=60s -v -race -p 1
+          go build github.com/ru-bel-bot/bot -race
