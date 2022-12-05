@@ -77,7 +77,7 @@ func main() {
 }
 
 func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
-	if len(update.InlineQuery.Query) == 0 {
+	if len(update.InlineQuery.Query) <= 3 {
 		inlineConf := tgbotapi.InlineConfig{
 			InlineQueryID: update.InlineQuery.ID,
 		}
@@ -87,8 +87,8 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		}
 		return
 	}
-	log.Println(update.InlineQuery.Query)
-	suggestions, err := getScarnikSuggestions(update.InlineQuery.Query)
+
+	suggestions, err := getSkarnikSuggestions(update.InlineQuery.Query)
 	if err != nil {
 		inlineConf := tgbotapi.InlineConfig{
 			InlineQueryID: update.InlineQuery.ID,
@@ -136,24 +136,6 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		articles = append(articles, article)
 	}
 
-//	for _, suggestion := range suggestions[0:4] {
-//		resp, err := requestSkarnik(suggestion)
-//		if err != nil {
-//			log.Println(err)
-//			continue
-//		}
-//
-//		suggestionTranslation, err := parseSkarnikResponse(resp)
-//		if err != nil {
-//			log.Println(err)
-//			continue
-//		}
-//
-//		article := tgbotapi.NewInlineQueryResultArticle(strconv.Itoa(suggestion.ID), suggestion.Label, *suggestionTranslation)
-//		article.Description = *suggestionTranslation
-//		articles = append(articles, article)
-//	}
-
 	results := make([]interface{}, len(articles))
 	for i, v := range articles {
 		results[i] = v
@@ -161,8 +143,8 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 
 	inlineConf := tgbotapi.InlineConfig{
 		InlineQueryID: update.InlineQuery.ID,
-		Results: results,
-		IsPersonal: true,
+		Results:       results,
+		IsPersonal:    true,
 	}
 	_, err = bot.Request(inlineConf)
 	if err != nil {
