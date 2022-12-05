@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-
-	"github.com/PuerkitoBio/goquery"
 )
 
 type Suggestion struct {
@@ -17,78 +15,32 @@ type Suggestion struct {
 	Label string `json:"label"`
 }
 
-func cleanTerm(searchTerm string) string {
-	cleanSearchTerm := strings.ReplaceAll(searchTerm, "ў", "щ")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "і", "и")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "’", "ъ")
-	cleanSearchTerm = strings.ReplaceAll(cleanSearchTerm, "'", "ъ")
+func Translate(searchTerm string, isDetailed bool) (string, error) {
+	words := strings.Fields(searchTerm)
 
-	return cleanSearchTerm
-}
-
-func translate(searchTerm string) (*string, error) {
-	cleanSearchTerm := cleanTerm(searchTerm)
-	words := strings.Fields(cleanSearchTerm)
-
-	translation := ""
-
-	for index, word := range words {
-		suggestions, err := getScarnikSuggestions(word)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if len(suggestions) == 0 {
-			continue
-		}
-
-		resp, err := requestSkarnik(suggestions[0])
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		wordTranslation, err := parseSkarnikResponse(resp)
-		if err != nil {
-			return nil, err
-		}
-
-		if index == 0 {
-			translation = *wordTranslation
-		} else {
-			translation = translation+";\n"+*wordTranslation
-		}
-	}
-
-	if len(translation) == 0 {
-		return nil, errors.New("No translation found")
-	}
-
-	return &translation, nil
-}
-
-func parseSkarnikResponse(resp *http.Response) (*string, error) {
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	suggestions, err := getSkarnikSuggestions(words[0])
 	if err != nil {
-		return nil, err
+		log.Println(err)
+		return "", err
+	}
+	if len(suggestions) == 0 {
+		return "", errors.New("no translation found")
 	}
 
-	section := doc.Find("#trn")
+	resp, err := requestSkarnik(suggestions[0])
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
 
-	translation := ""
-
-	section.Find("font[color=\"831b03\"]").Each(func(i int, s *goquery.Selection) {
-		if i == 0 {
-			translation += s.Text()
-		} else {
-			translation += fmt.Sprintf(", %s", s.Text())
-		}
-	})
-
-	return &translation, nil
+	if isDetailed {
+		return DetailedTranslationParse(resp.Body)
+	} else {
+		return ShortTranslationParse(resp.Body)
+	}
 }
 
-func getScarnikSuggestions(searchTerm string) ([]Suggestion, error) {
+func getSkarnikSuggestions(searchTerm string) ([]Suggestion, error) {
 	requestUrl := fmt.Sprintf("https://www.skarnik.by/search_json?term=%s&lang=rus", searchTerm)
 
 	resp, err := http.Get(requestUrl)
