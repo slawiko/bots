@@ -55,6 +55,12 @@ func main() {
 			handleCallback(bot, update.CallbackQuery)
 			continue
 		}
+		if update.InlineQuery != nil {
+			log.Println("inline query", update.InlineQuery.Query)
+			handleInlineQuery(bot, &update)
+			continue
+		}
+
 		if update.Message == nil {
 			continue
 		}
@@ -67,6 +73,87 @@ func main() {
 		} else if update.Message.Chat.IsPrivate() {
 			log.Println("private", update.Message.Text)
 			handlePrivateMessage(bot, &update)
+		}
+	}
+}
+
+func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	if len(update.InlineQuery.Query) <= 3 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	suggestions, err := getSkarnikSuggestions(update.InlineQuery.Query)
+	if err != nil {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err = bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	if len(suggestions) == 0 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	articles := []tgbotapi.InlineQueryResultArticle{}
+
+	for i := 0; i < len(suggestions); i++ {
+		if i > 2 {
+			break
+		}
+
+		resp, err := requestSkarnik(suggestions[i])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		sgstTranslation, HTMLSgstTranslation, err := ShortTranslationParse(resp.Body)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		article := tgbotapi.NewInlineQueryResultArticleHTML(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, HTMLSgstTranslation)
+		article.Description = sgstTranslation
+		articles = append(articles, article)
+	}
+
+	results := make([]interface{}, len(articles))
+	for i, v := range articles {
+		results[i] = v
+	}
+
+	inlineConf := tgbotapi.InlineConfig{
+		InlineQueryID: update.InlineQuery.ID,
+		Results:       results,
+		IsPersonal:    true,
+	}
+	_, err = bot.Request(inlineConf)
+	if err != nil {
+		log.Println("Request fail", len(results), err)
+		for _, e := range articles {
+			log.Println(e)
+			if e.InputMessageContent == nil {
+				log.Println(e.Description)
+			}
 		}
 	}
 }
