@@ -21,6 +21,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: build and test
+        working-directory: bot
         run: |
-          go test github.com/ru-bel-bot/bot -timeout=60s -v -race -p 1
-          go build github.com/ru-bel-bot/bot -race
+          go test -timeout=60s -v -race -p 1
+          go build -race

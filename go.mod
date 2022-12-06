@@ -1,4 +1,4 @@
-module github.com/ru-bel-bot
+module github.com/slawiko/ru-bel-bot
 
 go 1.18
 
