@@ -83,20 +83,21 @@ func DetailedTranslationParse(body io.Reader) (string, error) {
 	}
 }
 
-func ShortTranslationParse(body io.Reader) (string, error) {
+func ShortTranslationParse(body io.Reader) (string, string, error) {
 	tknzr := html.NewTokenizer(body)
 	stack := stack{
 		stack: make([]html.Token, 0),
 	}
 	var builder strings.Builder
+	var builderHTML strings.Builder
 
 	for {
 		tokenType := tknzr.Next()
 		if tokenType == html.ErrorToken {
 			if builder.Len() == 0 {
-				return "", errors.New("nothing is parsed")
+				return "", "", errors.New("nothing is parsed")
 			}
-			return builder.String(), nil
+			return builder.String(), builderHTML.String(), nil
 		}
 
 		t := tknzr.Token()
@@ -111,10 +112,11 @@ func ShortTranslationParse(body io.Reader) (string, error) {
 			if isTranslationToken(t) {
 				stack.Push(t)
 
-				if builder.Len() == 0 {
-					builder.WriteString("<b>")
+				if builderHTML.Len() == 0 && builder.Len() == 0 {
+					builderHTML.WriteString("<b>")
 				} else {
-					builder.WriteString(", <b>")
+					builderHTML.WriteString(", <b>")
+					builder.WriteString(", ")
 				}
 			} else if isP(t) {
 				stack.Push(t)
@@ -126,7 +128,7 @@ func ShortTranslationParse(body io.Reader) (string, error) {
 			}
 
 			if isTranslationToken(head) {
-				builder.WriteString("</b>")
+				builderHTML.WriteString("</b>")
 				stack.Pop()
 			} else if isP(t) {
 				stack.Pop()
@@ -138,6 +140,7 @@ func ShortTranslationParse(body io.Reader) (string, error) {
 			}
 			if isTranslationToken(head) {
 				builder.WriteString(t.Data)
+				builderHTML.WriteString(t.Data)
 			}
 		}
 	}

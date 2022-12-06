@@ -15,17 +15,28 @@ const (
 	ErrorMessage       = "Нешта чамусці пайшло ня так. Стварыце калі ласка ішшу на гітхабе https://github.com/slawiko/ru-bel-bot/issues"
 	EmptyResultMessage = "Нічога не знайшоў :("
 	HelpMessage        = `Спосабы ўзаемадзеяння:
-<b>У прываце</b>: наўпрост пішыце слова на рускай мове. Увага: я лагірую тэкст, што вы напішаце.
-<b>У группе</b>: пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. Напрыклад: <code>як будзе письмо</code>.
-Увага: тут я лагірую толькі факт карыстання гэтай функцыяй 
+
+<b>У прываце</b>
+Наўпрост пішыце слова на рускай мове.
+Увага: тут я лагірую тэкст, які вы напішаце.
+
+<b>У группе (спачатку дадайце мяне ў группу)</b>
+Пачніце ваша паведамленне са словаў <code>як будзе</code> і далей слово на русском языке. 
+Напрыклад: <code>як будзе письмо</code>
+Увага: тут я лагірую толькі факт карыстання гэтай функцыяй.
+
+<b>Убудаваны (inline mode)</b>
+Напішыце маё імя, а потым слова. І пачакайце пакуль не ўсплывуць падказкі.
+Напрыклад: <code>@jeujik_bot письмо</code>
+Увага: тут я лагірую тэкст, які вы напішаце.
 
 Таксама вы можаце не пераходзіць на рускую раскладку і пытацца, напрыклад, слова <code>ўавель</code> ці <code>олівка</code>.
 
-У тым выпадку, калі вы баіцеся дадаць мяне ў вашыя чаты, вы можаце запусціць мяне самастойна. Інструкцыя тут: https://github.com/slawiko/ru-bel-bot/blob/master/README.md#run. Калі нешта незразумела - пішыце ў https://github.com/slawiko/ru-bel-bot/issues
+У тым выпадку, калі вы баіцеся дадаць мяне ў вашыя чаты, ці пытаць словы, вы можаце запусціць мяне самастойна. Інструкцыя тут: https://github.com/slawiko/ru-bel-bot/blob/master/README.md#run. Калі нешта незразумела - пішыце ў https://github.com/slawiko/ru-bel-bot/issues
 
 <i>На дадзены момант я ня разумею памылкі ў словах, прабачце.</i>
 
-© Усе пераклады я бяру з https://skarnik.by, дзякуй яму вялікі.`
+® Усе пераклады я бяру з https://skarnik.by, аўтар ведае аб гэтым. Дзякуй яму вялікі.`
 	StartMessage = `Прывітаннечка. Мяне клічуць Жэўжык, я дапамагаю перайсці на родную мову. Вы можаце пытацца ў мяне слова на рускай, а я адкажу вам на беларускай.
 
 Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі. За дапамогай клацайце /help`
@@ -55,7 +66,17 @@ func main() {
 			handleCallback(bot, update.CallbackQuery)
 			continue
 		}
+		if update.InlineQuery != nil {
+			log.Println("inline query", update.InlineQuery.Query)
+			handleInlineQuery(bot, &update)
+			continue
+		}
+
 		if update.Message == nil {
+			continue
+		}
+
+		if update.Message.ViaBot != nil {
 			continue
 		}
 
@@ -67,6 +88,87 @@ func main() {
 		} else if update.Message.Chat.IsPrivate() {
 			log.Println("private", update.Message.Text)
 			handlePrivateMessage(bot, &update)
+		}
+	}
+}
+
+func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
+	if len(update.InlineQuery.Query) <= 3 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	suggestions, err := getSkarnikSuggestions(update.InlineQuery.Query)
+	if err != nil {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err = bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	if len(suggestions) == 0 {
+		inlineConf := tgbotapi.InlineConfig{
+			InlineQueryID: update.InlineQuery.ID,
+		}
+		_, err := bot.Request(inlineConf)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	articles := []tgbotapi.InlineQueryResultArticle{}
+
+	for i := 0; i < len(suggestions); i++ {
+		if i > 2 {
+			break
+		}
+
+		resp, err := requestSkarnik(suggestions[i])
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		sgstTranslation, HTMLSgstTranslation, err := ShortTranslationParse(resp.Body)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		article := tgbotapi.NewInlineQueryResultArticleHTML(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, HTMLSgstTranslation)
+		article.Description = sgstTranslation
+		articles = append(articles, article)
+	}
+
+	results := make([]interface{}, len(articles))
+	for i, v := range articles {
+		results[i] = v
+	}
+
+	inlineConf := tgbotapi.InlineConfig{
+		InlineQueryID: update.InlineQuery.ID,
+		Results:       results,
+		IsPersonal:    true,
+	}
+	_, err = bot.Request(inlineConf)
+	if err != nil {
+		log.Println("Request fail", len(results), err)
+		for _, e := range articles {
+			log.Println(e)
+			if e.InputMessageContent == nil {
+				log.Println(e.Description)
+			}
 		}
 	}
 }
