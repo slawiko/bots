@@ -146,7 +146,9 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 			continue
 		}
 
-		article := tgbotapi.NewInlineQueryResultArticleHTML(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, HTMLSgstTranslation)
+		messageText := fmt.Sprintf("<i>%s</i> па беларуску будзе %s", update.InlineQuery.Query, HTMLSgstTranslation)
+
+		article := tgbotapi.NewInlineQueryResultArticleHTML(strconv.Itoa(suggestions[i].ID), suggestions[i].Label, messageText)
 		article.Description = sgstTranslation
 		articles = append(articles, article)
 	}
