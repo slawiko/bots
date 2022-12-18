@@ -36,7 +36,7 @@ const (
 
 <i>На дадзены момант я ня разумею памылкі ў словах, прабачце.</i>
 
-® Усе пераклады я бяру з https://skarnik.by, аўтар ведае аб гэтым. Дзякуй яму вялікі.`
+© Усе пераклады я бяру з https://skarnik.by, аўтар ведае аб гэтым. Дзякуй яму вялікі.`
 	StartMessage = `Прывітаннечка. Мяне клічуць Жэўжык, я дапамагаю перайсці на родную мову. Вы можаце пытацца ў мяне слова на рускай, а я адкажу вам на беларускай.
 
 Вы можаце дадаць мяне ў группу і пытацца не выходзячы з дыялогу з сябрамі. За дапамогай клацайце /help`
@@ -104,7 +104,9 @@ func handleInlineQuery(bot *tgbotapi.BotAPI, update *tgbotapi.Update) {
 		return
 	}
 
-	suggestions, err := getSkarnikSuggestions(update.InlineQuery.Query)
+	normalizedText := PrepareRequestText(update.InlineQuery.Query)
+
+	suggestions, err := getSkarnikSuggestions(normalizedText)
 	if err != nil {
 		inlineConf := tgbotapi.InlineConfig{
 			InlineQueryID: update.InlineQuery.ID,
